@@ -278,12 +278,6 @@
   </header>
   <div class="swatch-strip" aria-hidden="true"></div>
 
-  <div id="sync-bar">
-    <span id="sync-msg">connect github to save your edits</span>
-    <button id="setup-token" class="btn-mini">connect</button>
-    <button id="clear-token" class="btn-mini ghost" style="display:none;">disconnect</button>
-  </div>
-
   <!-- 5 pillars -->
   <div class="pillars" id="pillars"></div>
 
@@ -543,20 +537,8 @@ $('#today-btn').addEventListener('click', () => {
   renderCal();
 });
 
-// ---- token ----
-function renderSyncBar() {
-  if (getToken()) {
-    $('#sync-bar').style.background = 'transparent';
-    $('#sync-msg').textContent = '✓ synced to github · changes save to the repo';
-    $('#setup-token').style.display = 'none';
-    $('#clear-token').style.display = '';
-  } else {
-    $('#sync-bar').style.background = 'var(--sand)';
-    $('#sync-msg').textContent = 'connect github to save your edits (one-time setup)';
-    $('#setup-token').style.display = '';
-    $('#clear-token').style.display = 'none';
-  }
-}
+// ---- token (sync bar hidden, prompt fires on save attempt only) ----
+function renderSyncBar() { /* hidden */ }
 async function promptForToken() {
   const url = `https://github.com/settings/personal-access-tokens/new?name=dominika-content&description=edit%20content%20calendar&target_name=callie-rounds-media`;
   alert(
@@ -570,10 +552,8 @@ async function promptForToken() {
   );
   window.open(url, '_blank');
   const t = prompt('paste your github token here:');
-  if (t && t.trim()) { setToken(t.trim()); renderSyncBar(); alert('connected ✓'); }
+  if (t && t.trim()) { setToken(t.trim()); alert('connected ✓'); }
 }
-$('#setup-token').addEventListener('click', promptForToken);
-$('#clear-token').addEventListener('click', () => { if (confirm('disconnect?')) { clearToken(); renderSyncBar(); } });
 
 // ---- init ----
 async function load() {
