@@ -100,11 +100,12 @@
     font-size: 11px; line-height: 1.5; color: var(--ink); opacity: 0.82;
   }
   @media (max-width: 720px) {
-    .pillars { gap: 6px; }
-    .p-tile .body { padding: 8px 8px 10px; }
-    .p-tile .name { font-size: 12px; }
-    .p-tile .desc { font-size: 9.5px; line-height: 1.4; }
-    .p-tile .num { font-size: 7.5px; letter-spacing: 0.22em; }
+    .pillars { gap: 4px; margin-bottom: 36px; }
+    .p-tile .cover { aspect-ratio: 3 / 4; }
+    .p-tile .body { padding: 6px 5px 8px; }
+    .p-tile .num { display: none; }
+    .p-tile .name { font-size: 9.5px; line-height: 1.1; letter-spacing: 0.01em; margin-bottom: 0; }
+    .p-tile .desc { display: none; }
   }
   .p-tile.acc-1 { border-color: var(--p1); }
   .p-tile.acc-2 { border-color: var(--p2); }
@@ -263,10 +264,44 @@
   }
 
   @media (max-width: 760px) {
-    .wrap { padding: 36px 18px 80px; }
-    .cal .d { min-height: 80px; padding: 6px 6px 8px; }
-    .cal .post { padding: 3px 5px; font-size: 10px; }
+    .wrap { padding: 32px 12px 60px; }
+    .swatch-strip { margin: 18px 0 24px; }
+
+    /* section heading */
+    .sec { padding-bottom: 10px; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+    .sec h2 { font-size: 22px; }
+    .sec .controls { gap: 6px; flex-wrap: wrap; }
+    .sec .controls button { padding: 6px 10px; font-size: 10px; letter-spacing: 0.12em; }
+    .sec .controls .month { min-width: 120px; font-size: 14px; }
+
+    /* calendar */
+    .cal .h { padding: 6px 2px; font-size: 8.5px; letter-spacing: 0.12em; }
+    .cal .d { min-height: 60px; padding: 4px 3px 5px; gap: 2px; }
+    .cal .d .num { font-size: 12px; margin-bottom: 1px; }
+    .cal .d.today .num { width: 20px; height: 20px; font-size: 10px; }
+    .cal .post { padding: 2px 3px; line-height: 1.1; }
+    .cal .post .pname { font-size: 7.5px; letter-spacing: 0.06em; text-transform: uppercase; }
     .cal .post .ptitle { display: none; }
+    .cal .add-btn { width: 18px; height: 18px; font-size: 11px; top: 3px; right: 3px; }
+  }
+  /* swap to short pillar number on small screens */
+  .cal .post .pname-short { display: none; }
+  @media (max-width: 540px) {
+    .cal .post .pname-text { display: none; }
+    .cal .post .pname-short { display: inline; font-weight: 600; letter-spacing: 0.08em; }
+  }
+  /* looking ahead section */
+  @media (max-width: 760px) {
+    section[class] + section, .wrap > section { padding: 22px 18px !important; }
+    .wrap section h3 { font-size: 22px !important; line-height: 1.05 !important; }
+    .wrap section p { font-size: 13px !important; line-height: 1.6 !important; }
+  }
+  /* modal on phone */
+  @media (max-width: 720px) {
+    .modal-bg { padding: 24px 14px; }
+    .modal { padding: 22px 20px 20px; }
+    .modal .mdate { font-size: 22px; }
+    .modal .pillar-pick button { font-size: 10px; padding: 7px 8px; }
   }
 
   .empty { text-align: center; padding: 60px 20px; color: var(--ink-soft); font-size: 14px; }
@@ -417,8 +452,11 @@ function renderCal() {
     const posts = dayEntries.map(e => {
       const px = pIdx[e.pillar] || 1;
       const titleBit = e.title ? `<div class="ptitle">${escape(e.title)}</div>` : '';
+      // on phone, show short label; on desktop, show full pillar name
+      const full = pName(e.pillar);
+      const short = e.pillar; // "01" etc as fallback for tiny screens
       return `<div class="post p${px}" data-id="${escape(e.id)}">
-        <div class="pname">${pName(e.pillar)}</div>
+        <div class="pname"><span class="pname-text">${full}</span><span class="pname-short">${short}</span></div>
         ${titleBit}
       </div>`;
     }).join('');
