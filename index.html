@@ -343,16 +343,17 @@ import { getToken, setToken, clearToken, putEntries } from './lib/sync.js';
 
 const DATA = './data/calendar.json';
 
+const CV = '?v=20260506b';
 const PILLARS = [
-  { key: '01', name: 'dubai locations',          cover: 'covers/01-dubai-locations.jpg',
+  { key: '01', name: 'dubai locations',          cover: 'covers/01-dubai-locations.jpg' + CV,
     desc: "the lesser-known ones. parks, gardens, hidden cafes, places of grounded connection. plus the wilder side, dunes, desert drives, mountains, cliffs, anywhere off the main grid. nothing chain." },
-  { key: '02', name: 'movement',                 cover: 'covers/02-movement.jpg',
+  { key: '02', name: 'movement',                 cover: 'covers/02-movement.jpg' + CV,
     desc: "pilates, walks, yoga, hikes, gym, stretching, the everyday side. plus the adventure side, e-foiling, surfing, paddle, climbing, kite, anything that asks something of the body." },
-  { key: '03', name: 'food + supplements',       cover: 'covers/03-food.jpg',
+  { key: '03', name: 'food + supplements',       cover: 'covers/03-food.jpg' + CV,
     desc: "matcha, meals, vitamins, supplements. what you're actually putting in your body, where you actually go." },
-  { key: '04', name: 'journal, reflection, personal', cover: 'covers/04-journal.jpg',
+  { key: '04', name: 'journal, reflection, personal', cover: 'covers/04-journal.jpg' + CV,
     desc: "the slower, more honest side. text over photo carousels, sunset shots, the moments in between. this is the pillar that builds depth. relatability lives here, and it's what turns viewers into people who feel close to you." },
-  { key: '05', name: 'biohacking + recovery',    cover: 'covers/05-biohacking.jpg',
+  { key: '05', name: 'biohacking + recovery',    cover: 'covers/05-biohacking.jpg' + CV,
     desc: "sauna, ice bath, cryo, cold plunge, red light, iv drips, breathwork. the longevity spots and rituals in dubai." },
 ];
 const pIdx = { '01': 1, '02': 2, '03': 3, '04': 4, '05': 5 };
