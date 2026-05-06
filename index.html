@@ -192,10 +192,12 @@
     background: none; border: 1px solid var(--ink-line); border-radius: 50%;
     width: 22px; height: 22px; cursor: pointer; opacity: 0;
     color: var(--ink-soft); font-size: 13px; line-height: 1;
-    display: flex; align-items: center; justify-content: center;
+    display: none;
+    align-items: center; justify-content: center;
     transition: opacity 0.15s ease;
   }
-  .cal .d:hover .add-btn { opacity: 0.9; }
+  body.editing .cal .add-btn { display: flex; }
+  body.editing .cal .d:hover .add-btn { opacity: 0.9; }
   .cal .add-btn:hover { color: var(--ink); }
 
   /* modal */
@@ -437,17 +439,28 @@ function renderCal() {
 
 // ---- modal ----
 function openEdit(entry) {
+  const editable = !!getToken();
   state.editId = entry?.id || null;
   state.editDate = entry?.date || null;
   state.editPillar = entry?.pillar || '01';
-  $('#m-meta').textContent = entry ? 'edit entry' : 'new entry';
+  $('#m-meta').textContent = editable ? (entry ? 'edit entry' : 'new entry') : (entry ? pName(entry.pillar) : '');
   $('#m-date').textContent = fmtDate(new Date(state.editDate + 'T12:00:00'));
   $('#m-pillar').innerHTML = PILLARS.map(p => `
-    <button data-p="${p.key}" class="${p.key === state.editPillar ? 'on' : ''}">${p.name}</button>
+    <button data-p="${p.key}" class="${p.key === state.editPillar ? 'on' : ''}" ${editable ? '' : 'disabled style="cursor:default;"'}>${p.name}</button>
   `).join('');
   $('#m-title').value = entry?.title || '';
   $('#m-note').value = entry?.note || '';
-  $('#m-delete').style.display = entry ? '' : 'none';
+  $('#m-title').readOnly = !editable;
+  $('#m-note').readOnly = !editable;
+  $('#m-title').style.background = editable ? 'var(--bone)' : 'transparent';
+  $('#m-note').style.background = editable ? 'var(--bone)' : 'transparent';
+  $('#m-save').style.display = editable ? '' : 'none';
+  $('#m-delete').style.display = (editable && entry) ? '' : 'none';
+  // hide empty form rows in read-only when there's no content
+  if (!editable) {
+    if (!entry?.title) $('#m-title').closest('label').nextElementSibling?.remove?.();
+    if (!entry?.note)  $('#m-note').closest('label').nextElementSibling?.remove?.();
+  }
   $('#modal-bg').classList.add('on');
   document.body.style.overflow = 'hidden';
 }
@@ -559,12 +572,12 @@ async function promptForToken() {
 // ---- init ----
 async function load() {
   try {
+    if (getToken()) document.body.classList.add('editing');
     const r = await fetch(DATA + '?t=' + Date.now(), { cache: 'no-store' });
     const data = await r.json();
     state.entries = data.entries || [];
     renderPillars();
     renderCal();
-    renderSyncBar();
   } catch {
     document.body.innerHTML = '<div class="empty">couldn\'t load calendar</div>';
   }
