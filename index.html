@@ -368,7 +368,7 @@
     <label for="m-note">note (optional)</label>
     <textarea id="m-note" placeholder="caption hook, location, what to capture, any reference urls"></textarea>
 
-    <div class="actions">
+    <div class="actions" style="display:none;">
       <button class="save" id="m-save">save</button>
       <button class="delete" id="m-delete">remove from calendar</button>
     </div>
@@ -376,7 +376,8 @@
 </div>
 
 <script type="module">
-import { getToken, setToken, clearToken, putEntries } from './lib/sync.js';
+// calendar is read-only on the public site. edits are done locally by callie
+// and pushed to the repo. no client-side write path, no token handling.
 
 const DATA = './data/calendar.json';
 
@@ -462,7 +463,6 @@ function renderCal() {
     }).join('');
     cells += `<div class="d ${isToday ? 'today' : ''}" data-date="${iso}">
       <span class="num">${day}</span>
-      <button class="add-btn" data-add="${iso}" title="add to this day">+</button>
       ${posts}
     </div>`;
   }
@@ -475,30 +475,32 @@ function renderCal() {
   $('#cal').innerHTML = headers + cells;
 }
 
-// ---- modal ----
+// ---- modal (read-only view) ----
 function openEdit(entry) {
-  const editable = !!getToken();
-  state.editId = entry?.id || null;
-  state.editDate = entry?.date || null;
-  state.editPillar = entry?.pillar || '01';
-  $('#m-meta').textContent = editable ? (entry ? 'edit entry' : 'new entry') : (entry ? pName(entry.pillar) : '');
+  if (!entry) return; // no entry → nothing to view
+  state.editId = entry.id;
+  state.editDate = entry.date;
+  state.editPillar = entry.pillar || '01';
+  $('#m-meta').textContent = pName(entry.pillar);
   $('#m-date').textContent = fmtDate(new Date(state.editDate + 'T12:00:00'));
   $('#m-pillar').innerHTML = PILLARS.map(p => `
-    <button data-p="${p.key}" class="${p.key === state.editPillar ? 'on' : ''}" ${editable ? '' : 'disabled style="cursor:default;"'}>${p.name}</button>
+    <button data-p="${p.key}" class="${p.key === state.editPillar ? 'on' : ''}" disabled style="cursor:default;">${p.name}</button>
   `).join('');
-  $('#m-title').value = entry?.title || '';
-  $('#m-note').value = entry?.note || '';
-  $('#m-title').readOnly = !editable;
-  $('#m-note').readOnly = !editable;
-  $('#m-title').style.background = editable ? 'var(--bone)' : 'transparent';
-  $('#m-note').style.background = editable ? 'var(--bone)' : 'transparent';
-  $('#m-save').style.display = editable ? '' : 'none';
-  $('#m-delete').style.display = (editable && entry) ? '' : 'none';
-  // hide empty form rows in read-only when there's no content
-  if (!editable) {
-    if (!entry?.title) $('#m-title').closest('label').nextElementSibling?.remove?.();
-    if (!entry?.note)  $('#m-note').closest('label').nextElementSibling?.remove?.();
-  }
+  $('#m-title').value = entry.title || '';
+  $('#m-note').value = entry.note || '';
+  $('#m-title').readOnly = true;
+  $('#m-note').readOnly = true;
+  $('#m-title').style.background = 'transparent';
+  $('#m-note').style.background = 'transparent';
+  $('#m-save').style.display = 'none';
+  $('#m-delete').style.display = 'none';
+  // hide empty fields entirely
+  const titleLabel = $('#m-title').closest('label');
+  const noteLabel = $('#m-note').closest('label');
+  if (titleLabel) titleLabel.style.display = entry.title ? '' : 'none';
+  if ($('#m-title')) $('#m-title').style.display = entry.title ? '' : 'none';
+  if (noteLabel) noteLabel.style.display = entry.note ? '' : 'none';
+  if ($('#m-note')) $('#m-note').style.display = entry.note ? '' : 'none';
   $('#modal-bg').classList.add('on');
   document.body.style.overflow = 'hidden';
 }
@@ -512,66 +514,12 @@ $('#m-close').addEventListener('click', closeModal);
 $('#modal-bg').addEventListener('click', e => { if (e.target.id === 'modal-bg') closeModal(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#modal-bg').classList.contains('on')) closeModal(); });
 
-$('#m-pillar').addEventListener('click', e => {
-  const b = e.target.closest('button[data-p]');
-  if (!b) return;
-  state.editPillar = b.dataset.p;
-  $$('#m-pillar button').forEach(x => x.classList.toggle('on', x.dataset.p === state.editPillar));
-});
-
-$('#m-save').addEventListener('click', async () => {
-  const title = $('#m-title').value.trim();
-  const note = $('#m-note').value.trim();
-  const pillar = state.editPillar;
-  const date = state.editDate;
-  if (!getToken()) { await promptForToken(); if (!getToken()) return; }
-  let next;
-  if (state.editId) {
-    next = state.entries.map(e => e.id === state.editId ? { ...e, pillar, title, note } : e);
-  } else {
-    next = [...state.entries, {
-      id: 'p_' + date + '_' + Math.random().toString(36).slice(2,5),
-      date, pillar, title, note, status: 'planned'
-    }];
-  }
-  state.entries = next;
-  closeModal();
-  renderCal();
-  try {
-    await putEntries(next, 'calendar: edit entry');
-  } catch (err) {
-    alert(err.message.startsWith('BAD_TOKEN') ? 'token invalid, reconnect' : 'save failed: ' + err.message);
-  }
-});
-
-$('#m-delete').addEventListener('click', async () => {
-  if (!confirm('remove this entry from the calendar?')) return;
-  if (!state.editId) { closeModal(); return; }
-  if (!getToken()) { await promptForToken(); if (!getToken()) return; }
-  const next = state.entries.filter(e => e.id !== state.editId);
-  state.entries = next;
-  closeModal();
-  renderCal();
-  try {
-    await putEntries(next, 'calendar: remove entry');
-  } catch (err) {
-    alert('remove failed: ' + err.message);
-  }
-});
-
-// ---- calendar interactions ----
+// ---- calendar interactions (view-only) ----
 $('#cal').addEventListener('click', e => {
   const post = e.target.closest('.post[data-id]');
   if (post) {
     const entry = state.entries.find(x => x.id === post.dataset.id);
     if (entry) openEdit(entry);
-    return;
-  }
-  const add = e.target.closest('[data-add]');
-  if (add) {
-    state.editDate = add.dataset.add;
-    openEdit(null);
-    return;
   }
 });
 
@@ -589,28 +537,9 @@ $('#today-btn').addEventListener('click', () => {
   renderCal();
 });
 
-// ---- token (sync bar hidden, prompt fires on save attempt only) ----
-function renderSyncBar() { /* hidden */ }
-async function promptForToken() {
-  const url = `https://github.com/settings/personal-access-tokens/new?name=dominika-content&description=edit%20content%20calendar&target_name=callie-rounds-media`;
-  alert(
-`to enable saving:
-
-1. open: ${url}
-2. repository access → only select repositories → pick "callie-rounds-media/dominika-content"
-3. repository permissions → contents → read and write
-4. generate token, copy it
-5. paste in the next prompt`
-  );
-  window.open(url, '_blank');
-  const t = prompt('paste your github token here:');
-  if (t && t.trim()) { setToken(t.trim()); alert('connected ✓'); }
-}
-
 // ---- init ----
 async function load() {
   try {
-    if (getToken()) document.body.classList.add('editing');
     const r = await fetch(DATA + '?t=' + Date.now(), { cache: 'no-store' });
     const data = await r.json();
     state.entries = data.entries || [];
